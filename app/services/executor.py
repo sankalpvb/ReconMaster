@@ -2,74 +2,89 @@
 
 import asyncio
 import subprocess
+import importlib
+import json
 
-# A mapping of tool names to their base command arguments
-# This is a security measure to prevent arbitrary command execution.
-# We will fetch the 'base_command' from the DB later, but this demonstrates the principle.
-# For now, we hardcode them.
+from . import nmap_parser
+
 COMMAND_MAP = {
-    "Nmap": ["nmap"],
-    "Gobuster": ["gobuster", "dir"],
-    "Sublist3r": ["sublist3r"],
-    "WhatWeb": ["whatweb"]
+    "Nmap": "nmap",
+    "Gobuster": "gobuster",
+    "Sublist3r": "sublist3r",
+    "WhatWeb": "whatweb"
 }
 
-# --- IMPORTANT SECURITY NOTE ---
-# This is a simplified executor. A production system would need more robust
-# input sanitization, user permission checks, and potentially run commands
-# in isolated containers (e.g., Docker) to prevent escape vulnerabilities.
+# Helper coroutine to read a stream and send data over the websocket
+async def _stream_reader(stream, websocket, output_list, is_stderr=False):
+    while True:
+        line_bytes = await stream.readline()
+        if not line_bytes:
+            break
+        line = line_bytes.decode().strip()
+        output_list.append(line) # Add line to the list for later parsing
+        prefix = "ERROR: " if is_stderr else ""
+        await websocket.send_text(prefix + line)
 
-async def run_command_stream(tool_name: str, target: str, websocket):
+async def run_command_stream(tool_name: str, target: str, options: str, websocket):
     """
-    Executes a command and streams its stdout and stderr to a WebSocket in real-time.
+    Dynamically loads a tool module, builds its command, streams its output,
+    and sends a final parsed summary.
     """
-    # 1. Validate the tool_name against our allowed commands
     if tool_name not in COMMAND_MAP:
         await websocket.send_text(f"ERROR: Tool '{tool_name}' is not a valid or allowed tool.")
         return
 
-    # 2. Construct the command safely as a list
-    #    This prevents shell injection vulnerabilities.
-    #    NEVER use `shell=True` with user-provided input.
-    base_cmd = COMMAND_MAP[tool_name]
-    
-    # Simple argument mapping for demonstration
-    if tool_name == "Gobuster":
-        # Gobuster needs -u for URL and -w for wordlist
-        # NOTE: This assumes a wordlist path. A real app would make this configurable.
-        command = base_cmd + ["-u", f"http://{target}", "-w", "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", "-t", "20"]
-    elif tool_name == "Sublist3r":
-        # Sublist3r needs -d for domain
-        command = base_cmd + ["-d", target]
-    else:
-        # For Nmap and WhatWeb, the target is the last argument
-        command = base_cmd + [target]
+    try:
+        module_name = f"app.tools.{tool_name.lower()}_tool"
+        tool_module = importlib.import_module(module_name)
+        command = tool_module.build_command(target, options)
+    except ImportError:
+        await websocket.send_text(f"ERROR: No execution logic found for tool '{tool_name}'.")
+        return
+    except Exception as e:
+        await websocket.send_text(f"ERROR: Could not build command for {tool_name}: {e}")
+        return
 
     await websocket.send_text(f"INFO: Running command: {' '.join(command)}\n\n")
 
-    # 3. Create the subprocess
-    process = await asyncio.create_subprocess_exec(
-        *command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
-    # 4. Stream stdout and stderr in real-time
-    while True:
-        # Check stdout
-        stdout_line = await process.stdout.readline()
-        if stdout_line:
-            await websocket.send_text(stdout_line.decode().strip())
-        
-        # Check stderr
-        stderr_line = await process.stderr.readline()
-        if stderr_line:
-            await websocket.send_text(f"ERROR: {stderr_line.decode().strip()}")
+        full_output_list = [] # Use a list to collect all output lines
 
-        # Break the loop if the process has finished and there's no more output
-        if process.returncode is not None and not stdout_line and not stderr_line:
-            break
-        
-        await asyncio.sleep(0.1) # Small sleep to prevent a busy-wait loop
+        # Concurrently read stdout and stderr until both streams are closed
+        await asyncio.gather(
+            _stream_reader(process.stdout, websocket, full_output_list),
+            _stream_reader(process.stderr, websocket, full_output_list, is_stderr=True)
+        )
 
-    await websocket.send_text(f"\n\nINFO: Process finished with exit code {process.returncode}.")
+        # Wait for the process to fully terminate
+        await process.wait()
+        exit_code = process.returncode
+
+        # Join the collected lines into a single string for parsing
+        full_output = "\n".join(full_output_list)
+
+        # After the process finishes, parse the collected output
+        if tool_name == "Nmap":
+            parsed_data = nmap_parser.parse_nmap_output(full_output)
+            if parsed_data:
+                # Send the structured data in a special JSON message
+                await websocket.send_text(json.dumps({
+                    "type": "parsed_data",
+                    "tool": "Nmap",
+                    "data": parsed_data
+                }))
+
+        await websocket.send_text(f"\n\nINFO: Process finished with exit code {exit_code}.")
+
+    except FileNotFoundError:
+        base_command = COMMAND_MAP.get(tool_name, "unknown")
+        await websocket.send_text(f"ERROR: Command '{base_command}' not found. Is {tool_name} installed?")
+    except Exception as e:
+        await websocket.send_text(f"ERROR: An unexpected error occurred during execution: {str(e)}")
+
