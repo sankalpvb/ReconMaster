@@ -4,15 +4,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const toolList = document.getElementById('tool-list');
     const mainContent = document.getElementById('main-content');
     const referenceColumn = document.getElementById('reference-column');
+    const suggestionModal = new bootstrap.Modal(document.getElementById('suggestionModal'));
+    const suggestionModalBody = document.getElementById('suggestionModalBody');
     let socket = null;
     let currentScanData = {};
 
-    // --- Nmap Reference Table (no changes) ---
-    function createNmapReferenceTable() {
-        return `<div class="card"><div class="card-body"><h5 class="card-title">Nmap Quick Reference</h5><div class="table-responsive" style="max-height: 400px; overflow-y: auto;"><table class="table table-sm table-bordered table-hover"><thead class="table-dark sticky-top"><tr><th>Flag / Script</th><th>Description</th></tr></thead><tbody><tr><td>-sS</td><td>TCP SYN (Stealth) Scan</td></tr><tr><td>-sT</td><td>TCP Connect Scan</td></tr><tr><td>-sU</td><td>UDP Scan</td></tr><tr><td>-sV</td><td>Version Detection</td></tr><tr><td>-O</td><td>OS Detection</td></tr><tr><td>-A</td><td>Aggressive Scan (All)</td></tr><tr><td>-p-</td><td>Scan all 65535 ports</td></tr><tr><td>-F</td><td>Fast Mode (Top 100 ports)</td></tr><tr><td>-T4</td><td>Aggressive Timing</td></tr><tr><td>-sn</td><td>Ping Scan (No Ports)</td></tr><tr><td colspan="2" class="table-secondary text-center"><strong>Common Scripts</strong></td></tr><tr><td>-sC</td><td>Run default safe scripts</td></tr><tr><td>--script=vuln</td><td>Check for common vulnerabilities</td></tr><tr><td>--script=http-title</td><td>Get titles from web pages</td></tr><tr><td>--script=smb-os-discovery</td><td>Discover OS on SMB servers</td></tr><tr><td>--script=dns-brute</td><td>Brute force DNS hostnames</td></tr><tr><td>--script=vulners</td><td>Check against Vulners database</td></tr></tbody></table></div></div></div>`;
-    }
-
-    // --- Tool Fetching and Displaying (no changes) ---
+    // --- Tool Fetching and Displaying ---
     async function fetchTools() {
         try {
             const response = await fetch('/api/tools');
@@ -21,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
             displayTools(tools);
         } catch (error) { console.error("Failed to fetch tools:", error); }
     }
+
     function displayTools(tools) {
         toolList.innerHTML = '';
         tools.forEach(tool => {
@@ -32,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             toolList.appendChild(toolElement);
         });
     }
+
     async function fetchAndDisplayToolDetails(toolId) {
         try {
             const response = await fetch(`/api/tools/${toolId}`);
@@ -41,61 +40,55 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { console.error("Failed to fetch tool details:", error); }
     }
 
-    // --- Main Content Update (no changes) ---
+    // --- Main Content Update ---
     async function updateMainContent(tool) {
         let optionsHtml = '';
         referenceColumn.innerHTML = '';
         try {
             const toolModuleName = tool.name.toLowerCase();
             const toolModule = await import(`./tools/${toolModuleName}.js`);
+            
             if (toolModule.createGobusterOptions && toolModuleName === 'gobuster') {
                  optionsHtml = toolModule.createGobusterOptions();
             } else if (toolModule.createNmapOptions) {
                  optionsHtml = toolModule.createNmapOptions();
             }
+
             if (toolModule.createNmapReferenceTable) {
                 referenceColumn.innerHTML = toolModule.createNmapReferenceTable();
+            } else if (toolModule.createGobusterReferenceTable) {
+                referenceColumn.innerHTML = toolModule.createGobusterReferenceTable();
             }
+
         } catch (error) {
             console.warn(`No specific UI module found for ${tool.name}.`, error);
         }
         mainContent.innerHTML = `<h2 class="card-title">${tool.name} <span class="badge bg-secondary">${tool.category}</span></h2><p class="card-text">${tool.description}</p><h5>Advantages</h5><p>${tool.advantages}</p><h5>Example Usage</h5><pre><code>${tool.example_usage}</code></pre><hr><div id="parsed-results-container" class="mb-4"></div><h4>Run Tool</h4><div class="mb-3"><label for="target-input" class="form-label">Target</label><input type="text" class="form-control" id="target-input" placeholder="example.com"></div>${optionsHtml}<div id="action-buttons" class="mt-4"><button class="btn btn-primary" id="run-tool-btn" data-tool-id="${tool.id}" data-tool-name="${tool.name}">Run Scan</button><button class="btn btn-danger" id="cancel-tool-btn" style="display: none;">Cancel Scan</button></div><h4 class="mt-4">Raw Output</h4><div id="output-area"></div>`;
     }
 
-    // --- MODIFIED: Function to display the parsed results in a table ---
-    function displayParsedResults(parsedData) {
+    // --- Function to display parsed results ---
+    function displayParsedResults(toolName, parsedData) {
         const container = document.getElementById('parsed-results-container');
         if (!container) return;
 
-        let tableHtml = `
-            <h4>Analysis & Next Steps</h4>
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Port</th>
-                            <th>State</th>
-                            <th>Service</th>
-                            <th>Suggested Next Step</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        parsedData.forEach(port => {
-            tableHtml += `
-                <tr>
-                    <td>${port.port}</td>
-                    <td><span class="badge bg-success">${port.state}</span></td>
-                    <td>${port.service}</td>
-                    <td>${port.suggestion}</td>
-                </tr>
-            `;
-        });
-        tableHtml += '</tbody></table></div>';
+        let tableHtml = '';
+        if (toolName === 'Nmap') {
+            tableHtml = `<h4>Analysis & Next Steps</h4><div class="table-responsive"><table class="table table-striped table-bordered"><thead class="table-dark"><tr><th>Port</th><th>State</th><th>Service</th><th>Suggested Next Step</th></tr></thead><tbody>`;
+            parsedData.forEach(port => {
+                tableHtml += `<tr><td>${port.port}</td><td><span class="badge bg-success">${port.state}</span></td><td>${port.service}</td><td>${port.suggestion}</td></tr>`;
+            });
+            tableHtml += '</tbody></table></div>';
+        } else if (toolName === 'Gobuster') {
+            tableHtml = `<h4>Analysis: Found Paths</h4><div class="table-responsive"><table class="table table-striped table-bordered"><thead class="table-dark"><tr><th>Path</th><th>Status</th><th>Size (Bytes)</th><th>Suggestion</th></tr></thead><tbody>`;
+            parsedData.forEach(path => {
+                tableHtml += `<tr><td>${path.path}</td><td><span class="badge bg-info">${path.status}</span></td><td>${path.size}</td><td><button class="btn btn-sm btn-outline-info suggestion-btn" data-suggestion="${path.suggestion}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16" style="pointer-events: none;"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.055.491.223.57.45.079.227.028.473-.143.645-.17.172-.396.256-.643.256h-.102c-.247 0-.473-.084-.643-.256-.172-.172-.223-.418-.143-.645.079-.227.276-.395.57-.45l.45-.083-.082-.38-2.29-.287A1.76 1.76 0 0 0 4 8.25c0 .966.784 1.75 1.75 1.75A1.76 1.76 0 0 0 7.5 8.25c0-.966-.784-1.75-1.75-1.75zM8 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg></button></td></tr>`;
+            });
+            tableHtml += '</tbody></table></div>';
+        }
         container.innerHTML = tableHtml;
     }
-
-    // --- Save Scan Function (no changes) ---
+    
+    // --- Save Scan Function ---
     async function saveCurrentScan() {
         if (!currentScanData.output) { alert("No scan output to save."); return; }
         try {
@@ -112,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) { console.error("Save scan error:", error); alert("Error saving scan."); }
     }
 
-    // --- Event Listeners (no changes) ---
+    // --- Event Listeners ---
     mainContent.addEventListener('input', function(event) {
         const toolName = document.getElementById('run-tool-btn')?.dataset.toolName;
         if (toolName === 'Nmap' && (event.target.id === 'nmap-flags-input' || event.target.id === 'target-input')) {
@@ -123,6 +116,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     mainContent.addEventListener('click', function(event) {
+        const suggestionBtn = event.target.closest('.suggestion-btn');
+        if (suggestionBtn) {
+            const suggestionText = suggestionBtn.dataset.suggestion;
+            suggestionModalBody.textContent = suggestionText;
+            suggestionModal.show();
+            return;
+        }
+        
         const targetEl = event.target;
         if (targetEl && targetEl.id === 'run-tool-btn') {
             const toolId = targetEl.dataset.toolId;
@@ -142,39 +143,33 @@ document.addEventListener('DOMContentLoaded', function() {
         if (targetEl && targetEl.id === 'save-scan-btn') { saveCurrentScan(); }
     });
 
-    // --- MODIFIED: WebSocket Logic to handle parsed data ---
+    // --- WebSocket Logic ---
     function startWebSocket(toolId, target, options, outputArea) {
         const runBtn = document.getElementById('run-tool-btn');
         const cancelBtn = document.getElementById('cancel-tool-btn');
         const actionButtons = document.getElementById('action-buttons');
         const parsedContainer = document.getElementById('parsed-results-container');
-        
         document.getElementById('save-scan-btn')?.remove();
         if(parsedContainer) parsedContainer.innerHTML = '';
-
         runBtn.style.display = 'none';
         cancelBtn.style.display = 'inline-block';
         outputArea.innerHTML = '<p class="text-info">Connecting to server...</p>';
-        
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${wsProtocol}//${window.location.host}/api/ws/run/${toolId}`;
         socket = new WebSocket(wsUrl);
-
         socket.onopen = function() {
             outputArea.innerHTML = '<p class="text-success">Connection successful! Sending command...</p>';
             const payload = JSON.stringify({ target: target, options: options });
             socket.send(payload);
         };
-
         socket.onmessage = function(event) {
             try {
                 const parsedMessage = JSON.parse(event.data);
                 if (parsedMessage.type === 'parsed_data') {
-                    displayParsedResults(parsedMessage.data);
+                    displayParsedResults(parsedMessage.tool, parsedMessage.data);
                     return;
                 }
             } catch (e) { /* Not JSON, treat as raw output */ }
-
             if (!event.data.startsWith("INFO:") && !event.data.startsWith("ERROR:")) {
                 currentScanData.output += event.data + '\n';
             }
@@ -183,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
             outputArea.appendChild(message);
             outputArea.scrollTop = outputArea.scrollHeight;
         };
-
         socket.onclose = function() {
             const message = document.createElement('p');
             message.className = 'text-warning mt-2';
@@ -199,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 actionButtons.appendChild(saveBtn);
             }
         };
-
         socket.onerror = function() {
             const message = document.createElement('p');
             message.className = 'text-danger mt-2';

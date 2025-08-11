@@ -19,6 +19,34 @@ function createGobusterOptions() {
     `;
 }
 
-// We export the function so main.js can import it.
-// Note: Gobuster doesn't have a reference table, so we export a blank function for consistency.
-export { createGobusterOptions, function createGobusterReferenceTable() { return ''; } };
+// NEW: This function creates the HTML for the Gobuster reference table.
+function createGobusterReferenceTable() {
+    return `
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Gobuster Quick Reference</h5>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-bordered table-hover">
+                        <thead class="table-dark sticky-top">
+                            <tr><th>Flag</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>-u</td><td>Target URL or Domain</td></tr>
+                            <tr><td>-w</td><td>Path to the wordlist</td></tr>
+                            <tr><td>-t</td><td>Number of concurrent threads (e.g., 50)</td></tr>
+                            <tr><td>-x</td><td>File extensions to search for (e.g., php,html)</td></tr>
+                            <tr><td>-s</td><td>Show positive status codes (e.g., 200,301)</td></tr>
+                            <tr><td>-b</td><td>Block specific status codes (e.g., 404)</td></tr>
+                            <tr><td>-k</td><td>Skip SSL certificate verification</td></tr>
+                            <tr><td>-U</td><td>Username for basic authentication</td></tr>
+                            <tr><td>-P</td><td>Password for basic authentication</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// We export the functions so main.js can import them.
+export { createGobusterOptions, createGobusterReferenceTable };

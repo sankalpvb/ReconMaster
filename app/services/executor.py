@@ -5,7 +5,9 @@ import subprocess
 import importlib
 import json
 
+# Import both of our parsers
 from . import nmap_parser
+from . import gobuster_parser
 
 COMMAND_MAP = {
     "Nmap": "nmap",
@@ -14,21 +16,21 @@ COMMAND_MAP = {
     "WhatWeb": "whatweb"
 }
 
-# Helper coroutine to read a stream and send data over the websocket
+# Helper coroutine to read a stream (no changes)
 async def _stream_reader(stream, websocket, output_list, is_stderr=False):
     while True:
         line_bytes = await stream.readline()
         if not line_bytes:
             break
         line = line_bytes.decode().strip()
-        output_list.append(line) # Add line to the list for later parsing
+        output_list.append(line)
         prefix = "ERROR: " if is_stderr else ""
         await websocket.send_text(prefix + line)
 
 async def run_command_stream(tool_name: str, target: str, options: str, websocket):
     """
     Dynamically loads a tool module, builds its command, streams its output,
-    and sends a final parsed summary.
+    and sends a final parsed summary for supported tools.
     """
     if tool_name not in COMMAND_MAP:
         await websocket.send_text(f"ERROR: Tool '{tool_name}' is not a valid or allowed tool.")
@@ -54,31 +56,32 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
             stderr=subprocess.PIPE
         )
 
-        full_output_list = [] # Use a list to collect all output lines
+        full_output_list = []
 
-        # Concurrently read stdout and stderr until both streams are closed
         await asyncio.gather(
             _stream_reader(process.stdout, websocket, full_output_list),
             _stream_reader(process.stderr, websocket, full_output_list, is_stderr=True)
         )
 
-        # Wait for the process to fully terminate
         await process.wait()
         exit_code = process.returncode
-
-        # Join the collected lines into a single string for parsing
         full_output = "\n".join(full_output_list)
 
-        # After the process finishes, parse the collected output
+        # --- MODIFIED: PARSING LOGIC ---
+        # Now checks which tool was run and calls the correct parser.
+        parsed_data = None
         if tool_name == "Nmap":
             parsed_data = nmap_parser.parse_nmap_output(full_output)
-            if parsed_data:
-                # Send the structured data in a special JSON message
-                await websocket.send_text(json.dumps({
-                    "type": "parsed_data",
-                    "tool": "Nmap",
-                    "data": parsed_data
-                }))
+        elif tool_name == "Gobuster":
+            parsed_data = gobuster_parser.parse_gobuster_output(full_output)
+
+        if parsed_data:
+            # Send the structured data in a special JSON message
+            await websocket.send_text(json.dumps({
+                "type": "parsed_data",
+                "tool": tool_name,
+                "data": parsed_data
+            }))
 
         await websocket.send_text(f"\n\nINFO: Process finished with exit code {exit_code}.")
 
@@ -87,4 +90,3 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
         await websocket.send_text(f"ERROR: Command '{base_command}' not found. Is {tool_name} installed?")
     except Exception as e:
         await websocket.send_text(f"ERROR: An unexpected error occurred during execution: {str(e)}")
-
