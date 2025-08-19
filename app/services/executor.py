@@ -5,15 +5,19 @@ import subprocess
 import importlib
 import json
 
-# Import both of our parsers
+# Import all of our parsers
 from . import nmap_parser
 from . import gobuster_parser
+from . import assetfinder_parser
+from . import sublist3r_parser
+from . import whatweb_parser # NEW
 
 COMMAND_MAP = {
     "Nmap": "nmap",
     "Gobuster": "gobuster",
+    "Assetfinder": "assetfinder",
     "Sublist3r": "sublist3r",
-    "WhatWeb": "whatweb"
+    "WhatWeb": "whatweb" # NEW
 }
 
 # Helper coroutine to read a stream (no changes)
@@ -28,10 +32,6 @@ async def _stream_reader(stream, websocket, output_list, is_stderr=False):
         await websocket.send_text(prefix + line)
 
 async def run_command_stream(tool_name: str, target: str, options: str, websocket):
-    """
-    Dynamically loads a tool module, builds its command, streams its output,
-    and sends a final parsed summary for supported tools.
-    """
     if tool_name not in COMMAND_MAP:
         await websocket.send_text(f"ERROR: Tool '{tool_name}' is not a valid or allowed tool.")
         return
@@ -68,15 +68,19 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
         full_output = "\n".join(full_output_list)
 
         # --- MODIFIED: PARSING LOGIC ---
-        # Now checks which tool was run and calls the correct parser.
         parsed_data = None
         if tool_name == "Nmap":
             parsed_data = nmap_parser.parse_nmap_output(full_output)
         elif tool_name == "Gobuster":
             parsed_data = gobuster_parser.parse_gobuster_output(full_output)
+        elif tool_name == "Assetfinder":
+            parsed_data = assetfinder_parser.parse_assetfinder_output(full_output)
+        elif tool_name == "Sublist3r":
+            parsed_data = sublist3r_parser.parse_sublist3r_output(full_output)
+        elif tool_name == "WhatWeb": # NEW
+            parsed_data = whatweb_parser.parse_whatweb_output(full_output)
 
         if parsed_data:
-            # Send the structured data in a special JSON message
             await websocket.send_text(json.dumps({
                 "type": "parsed_data",
                 "tool": tool_name,

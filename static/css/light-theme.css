@@ -1,0 +1,103 @@
+/* reconmaster/static/css/light-theme.css */
+
+body.light-theme {
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --border-color: #dee2e6;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --accent-cyan: #0d6efd; /* A professional blue for light mode */
+}
+
+body.light-theme {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+body.light-theme .activity-bar {
+    background-color: #e9ecef;
+    border-right-color: var(--border-color);
+}
+
+body.light-theme .sidebar {
+    background-color: var(--card-bg);
+    border-right-color: var(--border-color);
+}
+
+body.light-theme .quick-reference-panel {
+    background-color: #f8f9fa;
+    border-top-color: var(--accent-cyan);
+}
+
+body.light-theme .card {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+body.light-theme .card-header {
+    background-color: #f8f9fa;
+    border-bottom-color: var(--border-color);
+}
+
+body.light-theme .list-group-item {
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body.light-theme .list-group-item:hover {
+    background-color: #e9ecef;
+}
+
+body.light-theme .list-group-item.active {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #fff;
+}
+
+body.light-theme .form-control {
+    background-color: #f8f9fa;
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+body.light-theme .form-control:focus {
+    background-color: #fff;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+body.light-theme .btn-primary {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #fff;
+}
+
+body.light-theme .btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+body.light-theme .terminal-output {
+    background-color: #f8f9fa;
+    border-color: var(--border-color);
+    color: #212529;
+}
+
+body.light-theme .table {
+    --bs-table-bg: var(--card-bg);
+    --bs-table-striped-bg: #f8f9fa;
+    --bs-table-color: var(--text-color);
+    --bs-table-border-color: var(--border-color);
+}
+
+body.light-theme .table-dark {
+    --bs-table-bg: #e9ecef;
+    --bs-table-color: var(--text-color);
+}
+
+body.light-theme pre {
+    background-color: #e9ecef;
+    border-color: var(--border-color);
+    color: #212529;
+}
