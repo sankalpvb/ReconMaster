@@ -1,18 +1,31 @@
 // reconmaster/static/js/tools/nmap.js
 
-// This function creates the HTML for the Nmap reference table.
-function createNmapReferenceTable() {
+function createOptionsUI() {
     return `
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Nmap Quick Reference</h5>
-                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-sm table-bordered table-hover">
-                        <thead class="table-dark sticky-top">
-                            <tr><th>Flag / Script</th><th>Description</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>-sS</td><td>TCP SYN (Stealth) Scan</td></tr>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Target Host</label>
+                <input type="text" class="form-control" id="target-input" placeholder="scanme.nmap.org">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nmap Flags</label>
+                <input type="text" class="form-control" id="nmap-flags-input" placeholder="-sV -T4">
+            </div>
+        </div>
+        <div>
+            <strong>Command Preview:</strong>
+            <pre class="mt-2"><code id="command-preview" class="text-muted">nmap -sV -T4 <target></code></pre>
+        </div>
+    `;
+}
+
+function createReferenceUI() {
+    return `
+        <h5>Nmap Quick Reference</h5>
+        <table class="table table-sm mt-3">
+            <thead class="table-dark"><tr><th>Flag</th><th>Description</th></tr></thead>
+            <tbody>
+               <tr><td>-sS</td><td>TCP SYN (Stealth) Scan</td></tr>
                             <tr><td>-sT</td><td>TCP Connect Scan</td></tr>
                             <tr><td>-sU</td><td>UDP Scan</td></tr>
                             <tr><td>-sV</td><td>Version Detection</td></tr>
@@ -29,25 +42,9 @@ function createNmapReferenceTable() {
                             <tr><td>--script=smb-os-discovery</td><td>Discover OS on SMB servers</td></tr>
                             <tr><td>--script=dns-brute</td><td>Brute force DNS hostnames</td></tr>
                             <tr><td>--script=vulners</td><td>Check against Vulners database</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+            </tbody>
+        </table>
     `;
 }
 
-// This function creates the HTML for the Nmap options panel (the command builder).
-function createNmapOptions() {
-    return `
-        <div class="mt-4">
-            <h5>Nmap Options</h5>
-            <label for="nmap-flags-input" class="form-label">Enter Nmap flags:</label>
-            <input type="text" class="form-control" id="nmap-flags-input" placeholder="-sV -sC --script=default">
-            <div class="mt-3"><strong>Command Preview:</strong><pre><code id="command-preview" class="text-muted">nmap -sV -sC --script=default &lt;target&gt;</code></pre></div>
-        </div>
-    `;
-}
-
-// We export the functions so main.js can import them.
-export { createNmapOptions, createNmapReferenceTable };
+export { createOptionsUI, createReferenceUI };

@@ -9,7 +9,7 @@ def build_command(target: str, options: str) -> list:
     # The 'options' string we receive from the UI is the wordlist path.
     wordlist_path = options
     
-    # We construct the command with the 'dir' subcommand and use '-z' to show size.
+    # We construct the command with the 'dir' subcommand and the correct '-z' flag to show size.
     command = [base_command, 'dir', '-u', target, '-w', wordlist_path, '-t', '30', '-z']
     
     return command
