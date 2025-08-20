@@ -62,7 +62,7 @@ ReconMaster comes with an **automated setup script**.
    ```bash
    git clone https://github.com/sankalpvb/ReconMaster.git
    cd ReconMaster
-````
+  
 
 2. **Make the setup script executable:**
 
@@ -119,9 +119,3 @@ From the UI:
 This project is licensed under the [MIT License](LICENSE).
 
 ```
-
----
-
-⚡ Question: Do you also want me to **add badges** (Python version, License, FastAPI, etc.) back to the top like in the previous version, or keep this one **minimal & clean**?
-```
-
