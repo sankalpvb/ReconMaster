@@ -1,10 +1,13 @@
 // reconmaster/static/js/main.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Element Selectors for the UI ---
+    // --- Element Selectors for the new UI ---
     const toolListContainer = document.getElementById('tool-list');
+    // --- THIS IS THE CRITICAL FIX ---
     const mainContentArea = document.getElementById('main-content');
-    const referenceColumn = document.getElementById('reference-column');
+    const referencePanel = document.getElementById('reference-panel');
+    const referencePanelContent = document.getElementById('reference-panel-content');
+    const closeReferenceBtn = document.getElementById('close-reference-btn');
     const suggestionModal = new bootstrap.Modal(document.getElementById('suggestionModal'));
     const suggestionModalBody = document.getElementById('suggestionModalBody');
     let socket = null;
@@ -36,13 +39,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchAndDisplayToolDetails(toolId) {
-        // Update active state in sidebar
         document.querySelectorAll('#tool-list a').forEach(el => el.classList.remove('active'));
         const activeToolLink = document.querySelector(`#tool-list a[data-tool-id='${toolId}']`);
         if (activeToolLink) {
             activeToolLink.classList.add('active');
         }
-
+        
         try {
             const response = await fetch(`/api/tools/${toolId}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -57,46 +59,55 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Main UI Builder ---
     async function updateMainContentUI(tool) {
         let optionsHtml = '';
-        referenceColumn.innerHTML = ''; // Clear reference column on change
+        referencePanelContent.innerHTML = '';
+        referencePanel.classList.remove('visible');
 
         try {
             const toolModuleName = tool.name.toLowerCase();
             const toolModule = await import(`./tools/${toolModuleName}.js`);
-
+            
             if (toolModule.createOptionsUI) {
                  optionsHtml = toolModule.createOptionsUI();
             }
             if (toolModule.createReferenceUI) {
-                referenceColumn.innerHTML = toolModule.createReferenceUI();
+                referencePanelContent.innerHTML = toolModule.createReferenceUI();
             }
         } catch (error) {
             console.warn(`No specific UI module found for ${tool.name}.`, error);
         }
 
         mainContentArea.innerHTML = `
-            <h2 class="card-title">${tool.name}</h2>
-            <p class="text-muted">${tool.description}</p>
-            <hr>
-            <div id="parsed-results-container" class="mb-4"></div>
-            <h4>Run Tool</h4>
-            ${optionsHtml}
-            <div id="action-buttons" class="mt-3">
-                <button class="btn btn-primary" id="run-tool-btn" data-tool-id="${tool.id}" data-tool-name="${tool.name}">Initiate Scan</button>
-                <button class="btn btn-danger" id="cancel-tool-btn" style="display: none;">Cancel Scan</button>
+            <div class="d-flex align-items-center mb-2">
+                <h3>${tool.name}</h3>
+                <button class="btn btn-sm btn-outline-secondary ms-3" id="toggle-reference-btn" title="Toggle Quick Reference">
+                    <i class="ph ph-book-open" style="pointer-events: none;"></i> Reference
+                </button>
             </div>
-            <h4 class="mt-4">Raw Output</h4>
-            <div id="output-area" class="terminal-output"></div>
+            <p class="text-muted">${tool.description}</p>
+            <div class="card">
+                <div class="card-body">
+                    <h5>Run Scan</h5>
+                    ${optionsHtml}
+                    <div id="action-buttons" class="mt-3">
+                        <button class="btn btn-primary" id="run-tool-btn" data-tool-id="${tool.id}" data-tool-name="${tool.name}">Initiate Scan</button>
+                        <button class="btn btn-danger" id="cancel-tool-btn" style="display: none;">Cancel Scan</button>
+                    </div>
+                </div>
+            </div>
+            <div id="parsed-results-container" class="mb-3"></div>
+            <h5>Raw Output</h5>
+            <div class="terminal-output" id="output-area"></div>
         `;
     }
 
-    // --- MODIFIED: Function to display parsed results ---
+    // --- Function to display parsed results ---
     function displayParsedResults(toolName, parsedData) {
         const container = document.getElementById('parsed-results-container');
         if (!container || parsedData.length === 0) {
             if(container) container.innerHTML = '';
             return;
         };
-
+        
         let tableHtml = '';
         if (toolName === 'Nmap') {
             tableHtml = `<div class="card"><div class="card-header">Analysis & Next Steps</div><div class="card-body p-0"><table class="table table-striped m-0"><thead class="table-dark"><tr><th>Port</th><th>State</th><th>Service</th><th>Suggested Next Step</th></tr></thead><tbody>`;
@@ -126,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         container.innerHTML = tableHtml;
     }
-
+    
     // --- Save Scan Function ---
     async function saveCurrentScan() {
         if (!currentScanData.output) { alert("No scan output to save."); return; }
@@ -162,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
             suggestionModal.show();
             return;
         }
-
+        
         const targetEl = event.target;
         if (targetEl && targetEl.id === 'run-tool-btn') {
             const toolId = targetEl.dataset.toolId;
@@ -173,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let optionsValue = '';
             if (toolName === 'Nmap') optionsValue = document.getElementById('nmap-flags-input').value;
             else if (toolName === 'Gobuster') optionsValue = document.querySelector('input[name="scan-options"]:checked')?.value || '';
-            // For other tools, options are not needed from the UI, so optionsValue remains ''
             if (!targetValue) { alert('Please enter a target.'); return; }
             if (socket) { socket.close(); }
             currentScanData = { tool_id: toolId, target: targetValue, options: optionsValue, output: '' };
@@ -181,6 +191,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (targetEl && targetEl.id === 'cancel-tool-btn') { if (socket) { socket.close(); } }
         if (targetEl && targetEl.id === 'save-scan-btn') { saveCurrentScan(); }
+        if (event.target.closest('#toggle-reference-btn')) {
+            referencePanel.classList.toggle('visible');
+        }
+    });
+    
+    closeReferenceBtn.addEventListener('click', () => {
+        referencePanel.classList.remove('visible');
     });
 
     toolListContainer.addEventListener('click', function(event) {
@@ -250,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelBtn.style.display = 'none';
         };
     }
-
+    
     // Initial fetch of tools
     fetchTools();
 });

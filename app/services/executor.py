@@ -11,13 +11,15 @@ from . import gobuster_parser
 from . import assetfinder_parser
 from . import sublist3r_parser
 from . import whatweb_parser
+from . import httpx_parser # NEW
 
 COMMAND_MAP = {
     "Nmap": "nmap",
     "Gobuster": "gobuster",
     "Assetfinder": "assetfinder",
     "Sublist3r": "sublist3r",
-    "WhatWeb": "whatweb"
+    "WhatWeb": "whatweb",
+    "httpx": "httpx" # NEW
 }
 
 # Helper coroutine to read a stream (no changes)
@@ -67,31 +69,27 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
         exit_code = process.returncode
         full_output = "\n".join(full_output_list)
 
-        # --- MODIFIED: PARSING LOGIC WITH DEBUGGING ---
-        print(f"--- DEBUG: Scan finished for tool: {tool_name} ---") # DEBUG MESSAGE
+        # --- MODIFIED: PARSING LOGIC ---
         parsed_data = None
         if tool_name == "Nmap":
             parsed_data = nmap_parser.parse_nmap_output(full_output)
         elif tool_name == "Gobuster":
             parsed_data = gobuster_parser.parse_gobuster_output(full_output)
         elif tool_name == "Assetfinder":
-            print("--- DEBUG: Entering Assetfinder parsing logic ---") # DEBUG MESSAGE
             parsed_data = assetfinder_parser.parse_assetfinder_output(full_output)
-            print(f"--- DEBUG: Assetfinder parser returned: {parsed_data} ---") # DEBUG MESSAGE
         elif tool_name == "Sublist3r":
             parsed_data = sublist3r_parser.parse_sublist3r_output(full_output)
         elif tool_name == "WhatWeb":
             parsed_data = whatweb_parser.parse_whatweb_output(full_output)
+        elif tool_name == "httpx": # NEW
+            parsed_data = httpx_parser.parse_httpx_output(full_output)
 
         if parsed_data:
-            print("--- DEBUG: Parsed data found, sending to frontend. ---") # DEBUG MESSAGE
             await websocket.send_text(json.dumps({
                 "type": "parsed_data",
                 "tool": tool_name,
                 "data": parsed_data
             }))
-        else:
-            print("--- DEBUG: No parsed data found. Nothing to send. ---") # DEBUG MESSAGE
 
         await websocket.send_text(f"\n\nINFO: Process finished with exit code {exit_code}.")
 

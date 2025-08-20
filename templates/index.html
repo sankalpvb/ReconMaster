@@ -4,88 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ReconMaster</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        #tool-list .list-group-item-action { cursor: pointer; }
-        #output-area {
-            background-color: #212529;
-            color: #f8f9fa;
-            font-family: 'Courier New', Courier, monospace;
-            height: 400px;
-            overflow-y: scroll;
-            border-radius: 5px;
-            padding: 15px;
-            white-space: pre-wrap;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/light-theme.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">ReconMaster</a>
-            <div class="d-flex">
-                <!-- MODIFIED: Changed button to a simple link -->
-                <a class="btn btn-outline-light" href="/history">Scan History</a>
-            </div>
+
+    <div class="activity-bar">
+        <i class="ph-fill ph-wrench active" title="Tools"></i>
+        <a href="/history" class="text-decoration-none"><i class="ph ph-clock-counter-clockwise" title="Scan History"></i></a>
+        <div id="theme-toggle" style="margin-top: auto; cursor: pointer;" title="Toggle Theme">
+            <i class="ph ph-sun" id="sun-icon" style="display: none; pointer-events: none;"></i>
+            <i class="ph-fill ph-moon" id="moon-icon" style="pointer-events: none;"></i>
         </div>
-    </nav>
-
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Column 1: Sidebar for Tools -->
-            <div class="col-lg-3">
-                <div class="card">
-                    <div class="card-header">Available Tools</div>
-                    <div class="list-group list-group-flush" id="tool-list">
-                        <p class="p-3 text-muted">Loading tools...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Column 2: Main Content Area -->
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-body" id="main-content">
-                        <h2 class="card-title">Welcome to ReconMaster</h2>
-                        <p class="card-text">Select a tool from the list on the left to get started.</p>
-                        <hr>
-                        <h4>Output</h4>
-                        <div id="output-area"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Column 3: Reference/Context Area -->
-            <div class="col-lg-3" id="reference-column"></div>
-        </div>
+        <i class="ph ph-gear" title="Settings"></i>
     </div>
 
-    <!-- NEW: Reusable Suggestion Modal -->
-    <div class="modal fade" id="suggestionModal" tabindex="-1" aria-labelledby="suggestionModalLabel" aria-hidden="true">
+    <aside class="sidebar" id="tool-sidebar">
+        <h4>Tools</h4>
+        <div class="list-group list-group-flush mt-3" id="tool-list">
+            <p class="text-muted">Loading tools...</p>
+        </div>
+    </aside>
+
+    <div class="main-content-wrapper">
+        <!-- THIS IS THE CRITICAL CHANGE: ID is back to "main-content" -->
+        <main class="main-content" id="main-content">
+            <h3>Welcome to ReconMaster</h3>
+            <p class="text-muted">Select a tool from the list to get started.</p>
+        </main>
+
+        <aside class="quick-reference-panel" id="reference-panel">
+            <button type="button" class="btn-close btn-close-white" id="close-reference-btn" aria-label="Close"></button>
+            <div id="reference-panel-content"></div>
+        </aside>
+    </div>
+
+    <div class="modal fade" id="suggestionModal" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="suggestionModalLabel">Analysis & Suggestion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Analysis & Suggestion</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="suggestionModalBody">
-                    <!-- Suggestion content will be injected here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-body" id="suggestionModalBody"></div>
             </div>
         </div>
     </div>
 
-    <!-- The History Modal has been completely removed from this file -->
-
-    <!-- Bootstrap JS -->
+    <!-- SCRIPTS MOVED BACK TO THE BOTTOM OF THE BODY -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
     <script src="/static/js/main.js" type="module"></script>
+    <script src="/static/js/ui.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ body.light-theme {
     --border-color: #dee2e6;
     --text-color: #212529;
     --text-muted: #6c757d;
-    --accent-cyan: #0d6efd; /* A professional blue for light mode */
+    --accent-cyan: #0d6efd;
 }
 
 body.light-theme {
@@ -81,7 +81,7 @@ body.light-theme .btn-primary:hover {
 body.light-theme .terminal-output {
     background-color: #f8f9fa;
     border-color: var(--border-color);
-    color: #212529;
+    color: var(--text-color);
 }
 
 body.light-theme .table {
@@ -99,5 +99,5 @@ body.light-theme .table-dark {
 body.light-theme pre {
     background-color: #e9ecef;
     border-color: var(--border-color);
-    color: #212529;
+    color: var(--text-color);
 }
