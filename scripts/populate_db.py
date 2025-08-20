@@ -22,13 +22,14 @@ def populate_db():
             Tool(name="Assetfinder", category="Subdomain & DNS Enumeration", description="A fast and simple tool for finding subdomains related to a given domain.", base_command="assetfinder"),
             Tool(name="Sublist3r", category="Subdomain & DNS Enumeration", description="Enumerates subdomains of websites using OSINT from multiple search engines.", base_command="sublist3r"),
             Tool(name="WhatWeb", category="Technology Fingerprinting", description="Identifies web technologies including CMS, JavaScript libraries, and web servers.", base_command="whatweb"),
-	    Tool(name="httpx", category="Web Enumeration", description="Identifies web technologies including CMS, JavaScript libraries, and web servers.", base_command="httpx"),
+
             # --- Future Tools (Inactive) ---
             Tool(name="whois", category="Information Gathering", description="Find domain ownership information.", base_command="whois"),
             Tool(name="theHarvester", category="Information Gathering", description="Gather emails, subdomains, and hosts from public sources.", base_command="theHarvester"),
             Tool(name="amass", category="Subdomain & DNS Enumeration", description="In-depth DNS enumeration and network mapping.", base_command="amass"),
             Tool(name="masscan", category="Network Scanning", description="Extremely fast port scanner for large networks.", base_command="masscan"),
             Tool(name="ffuf", category="Web Enumeration", description="Fast web fuzzer written in Go.", base_command="ffuf"),
+            Tool(name="httpx", category="Web Enumeration", description="Fast and multi-purpose HTTP toolkit.", base_command="httpx"),
             Tool(name="nikto", category="Web Enumeration", description="Web server scanner which performs comprehensive tests.", base_command="nikto"),
             Tool(name="enum4linux-ng", category="Service Enumeration", description="A next generation SMB enumeration tool.", base_command="enum4linux-ng"),
             Tool(name="dnsrecon", category="Subdomain & DNS Enumeration", description="Powerful DNS enumeration script.", base_command="dnsrecon"),

@@ -5,7 +5,7 @@
     --card-bg: #1a1f28;
     --border-color: #303742;
     --text-color: #cdd5e0;
-    --text-muted: #8a93a0; /* This will be used but overridden for visibility */
+    --text-muted: #8a93a0;
     --accent-cyan: #00ffff;
     --accent-green: #39ff14;
 }
@@ -16,7 +16,7 @@ body {
     font-family: 'Inter', sans-serif;
     display: flex;
     height: 100vh;
-    overflow: hidden;
+    overflow: hidden; /* This is correct for the overall layout */
 }
 
 /* --- Main Layout Structure --- */
@@ -58,10 +58,11 @@ body {
     position: relative;
 }
 
+/* --- THIS IS THE CRITICAL FIX FOR SCROLLING --- */
 .main-content {
     flex-grow: 1;
     padding: 1.5rem;
-    overflow-y: auto;
+    overflow-y: auto; /* This allows the main content area to scroll */
 }
 
 /* --- Quick Reference Panel (Bottom) --- */
@@ -161,9 +162,8 @@ body {
     --bs-table-color: var(--text-color);
     --bs-table-border-color: var(--border-color);
 }
-.table td, .table th, .text-muted {
-    color: var(--text-color) !important; /* THIS IS THE CRITICAL FIX */
-    opacity: 0.9; /* Use opacity to mute instead of a dark color */
+.table td {
+    color: var(--text-color);
 }
 .table-dark { --bs-table-bg: #21262e; }
 .badge { font-family: 'Fira Code', monospace; }

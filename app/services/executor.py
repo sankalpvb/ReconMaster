@@ -1,17 +1,18 @@
 # reconmaster/app/services/executor.py
-
 import asyncio
 import subprocess
 import importlib
 import json
 
-# Import all of our parsers
+# Import all parsers, including the new ones
 from . import nmap_parser
 from . import gobuster_parser
 from . import assetfinder_parser
 from . import sublist3r_parser
 from . import whatweb_parser
-from . import httpx_parser # NEW
+from . import httpx_parser
+from . import ffuf_parser
+from . import whois_parser
 
 COMMAND_MAP = {
     "Nmap": "nmap",
@@ -19,10 +20,12 @@ COMMAND_MAP = {
     "Assetfinder": "assetfinder",
     "Sublist3r": "sublist3r",
     "WhatWeb": "whatweb",
-    "httpx": "httpx" # NEW
+    "httpx": "httpx",
+    "ffuf": "ffuf",
+    "whois": "whois"
+    # Add all other tool names here as they are created
 }
 
-# Helper coroutine to read a stream (no changes)
 async def _stream_reader(stream, websocket, output_list, is_stderr=False):
     while True:
         line_bytes = await stream.readline()
@@ -42,9 +45,6 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
         module_name = f"app.tools.{tool_name.lower()}_tool"
         tool_module = importlib.import_module(module_name)
         command = tool_module.build_command(target, options)
-    except ImportError:
-        await websocket.send_text(f"ERROR: No execution logic found for tool '{tool_name}'.")
-        return
     except Exception as e:
         await websocket.send_text(f"ERROR: Could not build command for {tool_name}: {e}")
         return
@@ -52,14 +52,24 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
     await websocket.send_text(f"INFO: Running command: {' '.join(command)}\n\n")
 
     try:
+        # For tools that take input via stdin (like httpx with a list)
+        stdin_input = None
+        if tool_name == "httpx":
+            stdin_input = target.encode('utf-8')
+
         process = await asyncio.create_subprocess_exec(
             *command,
+            stdin=subprocess.PIPE if stdin_input else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
 
-        full_output_list = []
+        if stdin_input:
+            process.stdin.write(stdin_input)
+            await process.stdin.drain()
+            process.stdin.close()
 
+        full_output_list = []
         await asyncio.gather(
             _stream_reader(process.stdout, websocket, full_output_list),
             _stream_reader(process.stderr, websocket, full_output_list, is_stderr=True)
@@ -69,32 +79,25 @@ async def run_command_stream(tool_name: str, target: str, options: str, websocke
         exit_code = process.returncode
         full_output = "\n".join(full_output_list)
 
-        # --- MODIFIED: PARSING LOGIC ---
+        # --- The complete parsing logic ---
         parsed_data = None
-        if tool_name == "Nmap":
-            parsed_data = nmap_parser.parse_nmap_output(full_output)
-        elif tool_name == "Gobuster":
-            parsed_data = gobuster_parser.parse_gobuster_output(full_output)
-        elif tool_name == "Assetfinder":
-            parsed_data = assetfinder_parser.parse_assetfinder_output(full_output)
-        elif tool_name == "Sublist3r":
-            parsed_data = sublist3r_parser.parse_sublist3r_output(full_output)
-        elif tool_name == "WhatWeb":
-            parsed_data = whatweb_parser.parse_whatweb_output(full_output)
-        elif tool_name == "httpx": # NEW
-            parsed_data = httpx_parser.parse_httpx_output(full_output)
+        if tool_name == "Nmap": parsed_data = nmap_parser.parse_nmap_output(full_output)
+        elif tool_name == "Gobuster": parsed_data = gobuster_parser.parse_gobuster_output(full_output)
+        elif tool_name == "Assetfinder": parsed_data = assetfinder_parser.parse_assetfinder_output(full_output)
+        elif tool_name == "Sublist3r": parsed_data = sublist3r_parser.parse_sublist3r_output(full_output)
+        elif tool_name == "WhatWeb": parsed_data = whatweb_parser.parse_whatweb_output(full_output)
+        elif tool_name == "httpx": parsed_data = httpx_parser.parse_httpx_output(full_output)
+        elif tool_name == "ffuf": parsed_data = ffuf_parser.parse_ffuf_output(full_output)
+        elif tool_name == "whois": parsed_data = whois_parser.parse_whois_output(full_output)
 
         if parsed_data:
             await websocket.send_text(json.dumps({
-                "type": "parsed_data",
-                "tool": tool_name,
-                "data": parsed_data
+                "type": "parsed_data", "tool": tool_name, "data": parsed_data
             }))
 
         await websocket.send_text(f"\n\nINFO: Process finished with exit code {exit_code}.")
 
     except FileNotFoundError:
-        base_command = COMMAND_MAP.get(tool_name, "unknown")
-        await websocket.send_text(f"ERROR: Command '{base_command}' not found. Is {tool_name} installed?")
+        await websocket.send_text(f"ERROR: Command '{COMMAND_MAP.get(tool_name)}' not found.")
     except Exception as e:
-        await websocket.send_text(f"ERROR: An unexpected error occurred during execution: {str(e)}")
+        await websocket.send_text(f"ERROR: An unexpected error occurred: {str(e)}")

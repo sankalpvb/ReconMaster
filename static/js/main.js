@@ -1,10 +1,9 @@
 // reconmaster/static/js/main.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Element Selectors for the new UI ---
+    // --- CORRECTED: Element Selectors to match your new UI ---
     const toolListContainer = document.getElementById('tool-list');
-    // --- THIS IS THE CRITICAL FIX ---
-    const mainContentArea = document.getElementById('main-content');
+    const mainContentArea = document.getElementById('main-content'); // Corrected ID
     const referencePanel = document.getElementById('reference-panel');
     const referencePanelContent = document.getElementById('reference-panel-content');
     const closeReferenceBtn = document.getElementById('close-reference-btn');
@@ -28,14 +27,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayTools(tools) {
         toolListContainer.innerHTML = '';
+        
+        const activeTools = ["Nmap", "Gobuster", "Assetfinder", "Sublist3r", "WhatWeb", "httpx", "ffuf", "whois"];
+        const categories = {};
         tools.forEach(tool => {
-            const toolElement = document.createElement('a');
-            toolElement.href = '#';
-            toolElement.className = 'list-group-item list-group-item-action';
-            toolElement.textContent = tool.name;
-            toolElement.dataset.toolId = tool.id;
-            toolListContainer.appendChild(toolElement);
+            if (!categories[tool.category]) {
+                categories[tool.category] = [];
+            }
+            categories[tool.category].push(tool);
         });
+
+        for (const category in categories) {
+            const header = document.createElement('h6');
+            header.className = 'text-muted mt-3 mb-2 ps-3';
+            header.textContent = category;
+            toolListContainer.appendChild(header);
+
+            categories[category].forEach(tool => {
+                const toolElement = document.createElement('a');
+                toolElement.href = '#';
+                toolElement.className = 'list-group-item list-group-item-action';
+                toolElement.textContent = tool.name;
+                toolElement.dataset.toolId = tool.id;
+
+                if (!activeTools.includes(tool.name)) {
+                    toolElement.classList.add('disabled');
+                }
+                toolListContainer.appendChild(toolElement);
+            });
+        }
     }
 
     async function fetchAndDisplayToolDetails(toolId) {
@@ -134,6 +154,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 tableHtml += `<tr><td>${item.plugin}</td><td>${item.result}</td><td>${item.suggestion}</td></tr>`;
             });
             tableHtml += '</tbody></table></div></div>';
+        } else if (toolName === 'httpx') {
+            tableHtml = `<div class="card"><div class="card-header">Analysis: Live Hosts</div><div class="card-body p-0"><table class="table table-striped m-0"><thead class="table-dark"><tr><th>URL</th><th>Status</th><th>Title</th><th>Technologies</th></tr></thead><tbody>`;
+            parsedData.forEach(item => {
+                const techBadges = item.technologies.map(tech => `<span class="badge bg-info me-1">${tech}</span>`).join(' ');
+                tableHtml += `<tr><td><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.url}</a></td><td><span class="badge bg-success">${item.status}</span></td><td>${item.title}</td><td>${techBadges}</td></tr>`;
+            });
+            tableHtml += '</tbody></table></div></div>';
+        } else if (toolName === 'ffuf') {
+            tableHtml = `<div class="card"><div class="card-header">Analysis: Found Paths (ffuf)</div><div class="card-body p-0"><table class="table table-striped m-0"><thead class="table-dark"><tr><th>Path</th><th>Status</th></tr></thead><tbody>`;
+            parsedData.forEach(item => {
+                tableHtml += `<tr><td>${item.path}</td><td><span class="badge bg-info">${item.status}</span></td></tr>`;
+            });
+            tableHtml += '</tbody></table></div></div>';
+        } else if (toolName === 'whois') {
+            tableHtml = `<div class="card"><div class="card-header">WHOIS Information</div><div class="card-body p-0"><table class="table table-striped m-0"><thead class="table-dark"><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+            parsedData.forEach(item => {
+                tableHtml += `<tr><td><strong>${item.key}</strong></td><td>${item.value}</td></tr>`;
+            });
+            tableHtml += '</tbody></table></div></div>';
         }
         container.innerHTML = tableHtml;
     }
@@ -182,8 +221,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetValue = targetInput.value.trim();
             const outputArea = document.getElementById('output-area');
             let optionsValue = '';
-            if (toolName === 'Nmap') optionsValue = document.getElementById('nmap-flags-input').value;
-            else if (toolName === 'Gobuster') optionsValue = document.querySelector('input[name="scan-options"]:checked')?.value || '';
+            
+            if (toolName === 'httpx') {
+                const selectedOptions = document.querySelectorAll('input[name="scan-options"]:checked');
+                optionsValue = Array.from(selectedOptions).map(cb => cb.value).join(' ');
+            } else if (toolName === 'Nmap') {
+                optionsValue = document.getElementById('nmap-flags-input').value;
+            } else if (toolName === 'Gobuster' || toolName === 'ffuf') {
+                optionsValue = document.querySelector('input[name="scan-options"]:checked')?.value || '';
+            }
+
             if (!targetValue) { alert('Please enter a target.'); return; }
             if (socket) { socket.close(); }
             currentScanData = { tool_id: toolId, target: targetValue, options: optionsValue, output: '' };
