@@ -6,72 +6,111 @@
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-red.svg)](https://fastapi.tiangolo.com/)  
 [![SQLite](https://img.shields.io/badge/Database-SQLite-lightgrey.svg)](https://www.sqlite.org/)  
 
-ReconMaster provides a modern browser-based UI for managing cybersecurity reconnaissance tools. It streamlines the reconnaissance phase of security assessments by running scans, parsing results into structured outputs, and offering actionable next steps.  
+---
+## 🎯 Introduction  
+
+ReconMaster is a Python-powered web application that provides a clean, interactive, and intelligent front-end for a suite of powerful command-line security tools.  
+
+It streamlines the reconnaissance phase of a security assessment by:  
+- Running scans  
+- Parsing raw terminal output into structured results  
+- Offering actionable suggestions for next steps  
+
+This transforms the complex and ephemeral nature of reconnaissance into a **structured, persistent, and insightful workflow**.  
 
 ---
 
-## ✨ Features  
-- **Centralized Web UI** – Dark/light theme with intuitive layout.  
-- **Real-time Scan Output** – Live logs via WebSockets.  
-- **Intelligent Parsing** – Extracts ports, directories, subdomains, and technologies.  
-- **Exploit Suggestions** – Optional Exploit-DB (`searchsploit`) integration.  
-- **Scan History** – Save and review past results.  
-- **Interactive Controls** – Cancel scans, click results, toggle themes.  
-- **Extensible** – Add new tools easily.  
+## ✨ Key Features  
+
+- **Centralized Web UI:** Dark/light theme with an intuitive layout.  
+- **Real-time Output:** View command results as they are generated.  
+- **Intelligent Parsing Engine:** Extracts open ports, directories, subdomains, and technologies into tables.  
+- **"Always-On" Suggestion Engine:** Provides context-aware recommendations (including Exploit-DB lookups).  
+- **Persistent Scan History:** Save and review past scans via a history page.  
+- **Interactive Controls:** Cancel scans, click discovered links, and toggle themes.  
+- **Modular & Scalable:** Easily add new tools to the framework.  
 
 ---
 
-## ⚙️ Quick Setup  
+## 🛠️ Technology Stack  
 
-The project comes with a **fully automated setup script**.  
+- **Backend:** Python 3, FastAPI, Uvicorn  
+- **Real-time:** WebSockets  
+- **Database:** SQLite + SQLAlchemy ORM  
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6 Modules)  
+- **UI Framework:** Bootstrap 5  
+- **Core Logic:** Python’s `asyncio` + `subprocess`  
+- **Integrated Tools:**  
+  - Nmap  
+  - Gobuster  
+  - Assetfinder  
+  - Sublist3r  
+  - WhatWeb  
+  - `searchsploit` (Exploit-DB)  
+  - httpx  
+  - ffuf  
+  - whois  
+  - nikto  
 
-```bash
-# Clone repository
-git clone https://github.com/sankalpvb/ReconMaster.git
-cd ReconMaster
+---
 
-# Make the setup script executable
-chmod +x setup.sh
+## ⚙️ Setup and Installation  
 
-# Run setup with sudo
-sudo ./setup.sh
+ReconMaster comes with an **automated setup script**.  
+
+1. **Clone the repository:**  
+   ```bash
+   git clone https://github.com/sankalpvb/ReconMaster.git
+   cd ReconMaster
 ````
 
-The script will:
+2. **Make the setup script executable:**
 
-* Install system dependencies (Nmap, Gobuster, Sublist3r, WhatWeb, etc.)
-* Optionally install Exploit-DB (`searchsploit`)
-* Install `httpx` (via Go)
-* Set up Python virtual environment & dependencies
-* Initialize the SQLite database
+   ```bash
+   chmod +x setup.sh
+   ```
 
----
+3. **Run the setup script (with sudo):**
 
-## ▶️ Running ReconMaster
+   ```bash
+   sudo ./setup.sh
+   ```
 
-After setup:
-
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Start the server
-uvicorn app.main:app --reload
-```
-
-Open your browser at:
-👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+   * Installs required system tools (Nmap, Gobuster, etc.)
+   * Optionally installs **Exploit-DB** (large package)
+   * Installs `httpx` via Go
+   * Creates Python virtual environment
+   * Installs dependencies from `requirements.txt`
+   * Initializes the SQLite database
 
 ---
 
 ## 📖 Usage
 
-1. Select a tool from the sidebar.
-2. Configure target and options.
-3. Click **Initiate Scan**.
-4. View results in **Analysis Table** (parsed) + **Raw Output**.
-5. Save results to history for later review.
-6. Access past scans via **Scan History**.
+Once setup is complete, follow these steps:
+
+1. **Activate the virtual environment:**
+
+   ```bash
+   source venv/bin/activate
+   ```
+
+2. **Start the server:**
+
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+3. **Open your browser:**
+   Go to **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+
+From the UI:
+
+* Select a tool from the sidebar
+* Enter your target and configure options
+* Click **"Initiate Scan"**
+* View results in the **Analysis Table** and **Raw Output log**
+* Save results to **History** for later review
 
 ---
 
@@ -80,5 +119,9 @@ Open your browser at:
 This project is licensed under the [MIT License](LICENSE).
 
 ```
-it strictly script-based?
+
+---
+
+⚡ Question: Do you also want me to **add badges** (Python version, License, FastAPI, etc.) back to the top like in the previous version, or keep this one **minimal & clean**?
 ```
+
